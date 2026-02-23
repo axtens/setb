@@ -1,0 +1,3 @@
+ define('demo()') :(end.demo)
+demo output = "demo" :(return)
+end.demo 

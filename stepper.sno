@@ -1,0 +1,11 @@
+-list
+-include 'lib/nextword.sno'
+ cmdline = host(0) 
+ ident(cmdline) :f(loop)
+ cmdline = "9 8 7 6"
+
+loop pair = nextword(cmdline)
+ output = pair<1> ' --- ' pair<2>
+ ident(pair<2>) :s(end)
+ cmdline = pair<2> :(loop)
+end
