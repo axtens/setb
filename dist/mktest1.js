@@ -1,5 +1,5 @@
 "use strict";
-mktest();
+mktest1();
 function argparse() {
     const keys = [];
     const names = [];

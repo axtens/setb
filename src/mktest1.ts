@@ -1,4 +1,4 @@
-mktest();
+mktest1();
 
 function argparse() {
     const keys = [];
