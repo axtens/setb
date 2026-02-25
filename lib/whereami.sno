@@ -1,6 +1,6 @@
- define('whereami()tmp')	:(whereami.end)
-whereami	tmp = bq("pwd")
+ define('whereami()tmp')	:(e.whereami)
+whereami tmp = bq("pwd")
  tmp = reverse(tmp)
  tmp ? break('/') . tmp
  whereami = reverse(tmp)	:(return)
-whereami.end
+e.whereami

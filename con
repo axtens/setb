@@ -1,0 +1,174 @@
+        -INCLUDE 'bq.sno'
+        * $Id: bq.sno,v 1.4 1997-09-14 04:36:57 phil Exp $
+        *	execute a shell command line and capture stdout
+        *
+        *	like shell backquotes (hence the name)
+        *	p budne, june 20, 1994
+1
+        *	optional second arg is string to use to seperate lines
+2
+3       	DEFINE("BQ(COMMAND,OFS)UNIT")			:(END_BQ)
+4       BQ	UNIT = IO_FINDUNIT()				:F(FRETURN)
+5       	INPUT(.X,UNIT,,'|' COMMAND)			:F(FRETURN)
+6       	OFS = IDENT(OFS) ' '
+7       	BQ = X						:F(BQF)
+8       BQL	BQ = BQ OFS X					:S(BQL)
+9       	ENDFILE(UNIT)
+10      	DETACH(.X)					:(RETURN)
+11      BQF	ENDFILE(UNIT)
+12      	DETACH(.X)					:(FRETURN)
+13      END_BQ
+        -INCLUDE 'lib/inhale.sno'
+14        DEFINE('inhale(script)codeblock,unit,line') :(E.INHALE)
+15      INHALE CODEBLOCK = ''
+16       UNIT = IO_FINDUNIT()
+17       INPUT(.FILE, UNIT, , SCRIPT) :f(F.INHALE)
+18      L.INHALE
+19       LINE = FILE :f(S.INHALE)
+20        LINE POS(0) 'END' RPOS(0) :s(L.INHALE)
+21       CODEBLOCK = CODEBLOCK LINE ';' :(L.INHALE)
+22      S.INHALE
+23       ENDFILE(FILE)
+24       DETACH(.FILE)
+25        INHALE = CODEBLOCK :(RETURN)
+26      F.INHALE
+27       OUTPUT = SCRIPT ' not found' :(FRETURN)
+28      E.INHALE
+        -INCLUDE 'lib/whereami.sno'
+29       DEFINE('whereami()tmp')	:(E.WHEREAMI)
+30      WHEREAMI TMP = BQ("pwd")
+31       TMP = REVERSE(TMP)
+32       TMP ? BREAK('/') . TMP
+33       WHEREAMI = REVERSE(TMP)	:(RETURN)
+34      E.WHEREAMI
+        -INCLUDE 'lib/cmprep.sno'
+35       DEFINE('cmprep(testname,result,expected)lhs,rhs,bhs') :(E.CMPREP)
+36      CMPREP TEST.COUNT = TEST.COUNT + 1
+37       DATATYPE(RESULT) LEN(1) . LHS
+38       DATATYPE(EXPECTED) LEN(1) . RHS
+39       BHS = LHS RHS '.cmprep'
+40       :($BHS)
+41      IS.CMPREP
+42       EQ(RESULT, 0 + EXPECTED) :s(S.CMPREP)f(F.CMPREP)
+43      SI.CMPREP
+44       EQ(0 + RESULT, EXPECTED) :s(S.CMPREP)f(F.CMPREP)
+45      II.CMPREP
+46       EQ(RESULT, EXPECTED) :s(S.CMPREP)f(F.CMPREP)
+47      SS.CMPREP
+48       CMPREP = IDENT(RESULT, EXPECTED) :s(S.CMPREP)f(F.CMPREP)
+49      S.CMPREP
+50       PASS.COUNT = PASS.COUNT + 1
+51       CMPREP = TESTNAME ' ... OK' :(RETURN)
+52      F.CMPREP
+53       FAIL.COUNT = FAIL.COUNT + 1
+54       CMPREP = TESTNAME ' ... FAIL' :(RETURN)
+55      E.CMPREP
+        -INCLUDE 'lib/nextword.sno'
+56       DEFINE('nextword(text)result,first') :(E.NEXTWORD)
+57      NEXTWORD RESULT = ARRAY("1:2")
+58       TEXT BREAK(' ') . FIRST SPAN(' ') = :f(F.NEXTWORD)
+59       RESULT<1> = FIRST
+60       RESULT<2> = TEXT
+        * output = 'nextword: ' result<1> ',' result<2>
+61       NEXTWORD = RESULT :(RETURN)
+62      F.NEXTWORD
+63       RESULT<1> = TEXT
+64       RESULT<2> = NULL
+        * output = 'nextword: ' result<1> ',' result<2>
+65       NEXTWORD = RESULT :(RETURN)
+66      E.NEXTWORD
+67       PASS.COUNT = 0
+68       FAIL.COUNT = 0
+69       TEST.COUNT = 0
+70       CORECODE = INHALE('./acronym.sno') :s(FILE.EXISTS)
+71       OUTPUT = 'file ./acronym.sno not found' :(END)
+72      FILE.EXISTS
+73       CODEBLOCK = CORECODE '; :(test.after)'
+74       COMPILED = CODE(CODEBLOCK)
+75       TESTLIST = HOST(0)
+76       IDENT(TESTLIST) :f(TEST.LOOP)
+77       TESTLIST = '1 2 3 4 5 6 7 8 9'
+78      TEST.LOOP
+79       TESTITEM = NEXTWORD(TESTLIST)
+80       TESTNO = TESTITEM<1>
+81       :($('test.' TESTNO))
+82      TEST.AFTER
+83       OUTPUT = CMPREP(DESCRIPTION, RESULT, EXPECTED)
+84       IDENT(TESTITEM<2>) :s(TESTS.DONE)
+85       TESTLIST = TESTITEM<2>
+86       :(TEST.LOOP)
+87      TEST.1
+        * basic
+88       DESCRIPTION = 'basic'
+89       EXPECTED = 'PNG'
+90       INPUT.PHRASE = 'Portable Network Graphics'
+91       :<COMPILED>
+92       :(TEST.AFTER)
+93      TEST.1.END
+94      TEST.2
+        * lowercase words
+95       DESCRIPTION = 'lowercase words'
+96       EXPECTED = 'ROR'
+97       INPUT.PHRASE = 'Ruby on Rails'
+98       :<COMPILED>
+99       :(TEST.AFTER)
+100     TEST.2.END
+101     TEST.3
+        * punctuation
+102      DESCRIPTION = 'punctuation'
+103      EXPECTED = 'FIFO'
+104      INPUT.PHRASE = 'First In, First Out'
+105      :<COMPILED>
+106      :(TEST.AFTER)
+107     TEST.3.END
+108     TEST.4
+        * all caps word
+109      DESCRIPTION = 'all caps word'
+110      EXPECTED = 'GIMP'
+111      INPUT.PHRASE = 'GNU Image Manipulation Program'
+112      :<COMPILED>
+113      :(TEST.AFTER)
+114     TEST.4.END
+115     TEST.5
+        * punctuation without whitespace
+116      DESCRIPTION = 'punctuation without whitespace'
+117      EXPECTED = 'CMOS'
+118      INPUT.PHRASE = 'Complementary metal-oxide semiconductor'
+119      :<COMPILED>
+120      :(TEST.AFTER)
+121     TEST.5.END
+122     TEST.6
+        * very long abbreviation
+123      DESCRIPTION = 'very long abbreviation'
+124      EXPECTED = 'ROTFLSHTMDCOALM'
+125      INPUT.PHRASE = 'Rolling On The Floor Laughing So Hard That My Dogs Came Over And Licked Me'
+126      :<COMPILED>
+127      :(TEST.AFTER)
+128     TEST.6.END
+129     TEST.7
+        * consecutive delimiters
+130      DESCRIPTION = 'consecutive delimiters'
+131      EXPECTED = 'SIMUFTA'
+132      INPUT.PHRASE = 'Something - I made up from thin air'
+133      :<COMPILED>
+134      :(TEST.AFTER)
+135     TEST.7.END
+136     TEST.8
+        * apostrophes
+137      DESCRIPTION = 'apostrophes'
+138      EXPECTED = 'HC'
+139      INPUT.PHRASE = "Halley's Comet"
+140      :<COMPILED>
+141      :(TEST.AFTER)
+142     TEST.8.END
+143     TEST.9
+        * underscore emphasis
+144      DESCRIPTION = 'underscore emphasis'
+145      EXPECTED = 'TRNT'
+146      INPUT.PHRASE = 'The Road _Not_ Taken'
+147      :<COMPILED>
+148      :(TEST.AFTER)
+149     TEST.9.END
+150     TESTS.DONE
+151      OUTPUT = TEST.COUNT " tests. " PASS.COUNT " passes, " FAIL.COUNT " failures."
+152     END

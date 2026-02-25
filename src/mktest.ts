@@ -28,7 +28,9 @@ function mktest() {
     snofile.push(' fail.count = 0');
     snofile.push(' test.count = 0');
 
-    snofile.push(` corecode = inhale('./${exercise}.sno') :f(end)`)
+    snofile.push(` corecode = inhale('./${exercise}.sno') :s(file.exists)`)
+    snofile.push(` output = 'file ./${exercise}.sno not found' :(end)`)
+    snofile.push('file.exists')
     snofile.push(" codeblock = corecode '; :(test.after)'");
     snofile.push(" compiled = code(codeblock)")
     snofile.push(' testlist = host(0)');
